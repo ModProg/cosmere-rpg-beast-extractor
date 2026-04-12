@@ -54,7 +54,10 @@ pub fn main() {
 #[test]
 fn test() {
     use insta::{assert_snapshot, assert_yaml_snapshot};
-    for (page, content) in pdf::extract_pages(env!("STORMLIGHT_WORLD_GUIDE_PDF"), 191..=240) {
+    for (page, content) in pdf::extract_pages(
+        "copyrighted/stormlight-world-guide/stormlight-world-guide.pdf",
+        191..=240,
+    ) {
         eprintln!("{page}");
         insta::with_settings!({
             prepend_module_to_snapshot=>false,
