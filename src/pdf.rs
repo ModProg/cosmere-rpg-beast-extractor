@@ -1,11 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
-use std::path::Path;
 use std::sync::Arc;
 
 use euclid::{Transform2D, vec2};
 use hayro_syntax::Pdf;
+use lazy_static::lazy_static;
 use pdf_extract::{MediaBox, OutputDev, OutputError, Transform};
+#[cfg(feature = "rayon")]
+use rayon::iter::ParallelIterator;
 
 struct ExtendedPlainTextOutput<'a> {
     writer: &'a mut String,
@@ -13,7 +15,6 @@ struct ExtendedPlainTextOutput<'a> {
     last_y: f64,
     first_char: bool,
     flip_ctm: Transform,
-    icon_map: &'a HashMap<String, String>,
     pending_icons: String,
 }
 
@@ -48,18 +49,18 @@ impl OutputDev for ExtendedPlainTextOutput<'_> {
         use std::fmt::Write;
         if self.first_char {
             let y_spacing = (y - self.last_y).abs();
-            if self.writer.lines().last().is_some_and(|l| {
-                l.ends_with("Graze: 3 (1d6) keen damage. Hit: 8 (1d6 + 5) keen damage.")
-            }) {
-                eprintln!("{char:?}");
-                eprintln!("{:?}", self.writer.lines().last());
-                eprintln!("{y} - {} = {y_spacing} > 15.", self.last_y,);
-                eprintln!(
-                    "{y} - {} = {y_spacing} > {transformed_font_size} * 1.5",
-                    self.last_y,
-                );
-                eprintln!("{x} < {}", self.last_end);
-            }
+            // if self.writer.lines().last().is_some_and(|l| {
+            //     l.ends_with("Graze: 3 (1d6) keen damage. Hit: 8 (1d6 + 5) keen damage.")
+            // }) {
+            //     eprintln!("{char:?}");
+            //     eprintln!("{:?}", self.writer.lines().last());
+            //     eprintln!("{y} - {} = {y_spacing} > 15.", self.last_y,);
+            //     eprintln!(
+            //         "{y} - {} = {y_spacing} > {transformed_font_size} * 1.5",
+            //         self.last_y,
+            //     );
+            //     eprintln!("{x} < {}", self.last_end);
+            // }
             if y_spacing > 15. {
                 write!(self.writer, "\n\n")?;
             } else if y_spacing > 10. {
@@ -118,7 +119,18 @@ impl OutputDev for ExtendedPlainTextOutput<'_> {
         _color: &[f64],
         path: &pdf_extract::Path,
     ) -> Result<(), OutputError> {
-        if let Some(icon) = self.icon_map.get(&format!("{path:?}")) {
+        lazy_static! {
+            static ref icon_map: HashMap<String, String> =
+                yaml_serde::from_str::<HashMap<String, HashSet<String>>>(include_str!(
+                    "icon_map.yaml"
+                ))
+                .unwrap()
+                .into_iter()
+                .flat_map(|(a, b)| b.into_iter().map(move |b| (b, a.clone())))
+                .collect();
+        }
+
+        if let Some(icon) = icon_map.get(&format!("{path:?}")) {
             // self.output_character(trm, 1.0, 0., 4.5, icon)
             // icons usually should not come last in any expression (at least a trailing `.`
             // should follow).
@@ -131,16 +143,11 @@ impl OutputDev for ExtendedPlainTextOutput<'_> {
     }
 }
 
-fn extract_text_by_page(
-    pdf: &Pdf,
-    page_num: u32,
-    icon_map: &HashMap<String, String>,
-) -> Result<String, OutputError> {
+fn extract_text_by_page(pdf: &Pdf, page_num: u32) -> Result<String, OutputError> {
     let mut s = String::new();
     {
         let mut output = ExtendedPlainTextOutput {
             writer: &mut s,
-            icon_map,
             last_end: 100000.,
             first_char: false,
             last_y: 0.,
@@ -153,25 +160,21 @@ fn extract_text_by_page(
 }
 
 pub fn extract_pages(
-    path: impl AsRef<Path>,
-    pages: impl IntoIterator<Item = u32>,
+    pdf: Vec<u8>,
+    pages: impl Iterator<Item = u32>,
 ) -> impl Iterator<Item = (u32, String)> {
-    let icon_map: HashMap<String, HashSet<String>> =
-        serde_yaml_ng::from_str(include_str!("icon_map.yaml")).unwrap();
-    // required because of yaml key length limit
-    let icon_map = icon_map
-        .into_iter()
-        .flat_map(|(a, b)| b.into_iter().map(move |b| (b, a.clone())))
-        .collect();
-    let bytes = std::fs::read(path).unwrap();
-    let pdf = Pdf::new(Arc::new(bytes)).unwrap();
-    pages
-        .into_iter()
-        .map(move |p| (p, extract_text_by_page(&pdf, p, &icon_map).unwrap()))
-    // for page in pages {
-    //     // let file_name = out_dir.join(format!("{page}.txt"));
-    //     // let out = extract_text_by_page(&pdf, page, &icon_map).unwrap();
-    //     // fs::write(file_name, out).unwrap();
-    //     let out = fs::read_to_string(file_name).unwrap();
-    // }
+    pages.map(extractor(pdf))
+}
+
+#[cfg(feature = "rayon")]
+pub fn extract_pages_rayon(
+    pdf: Vec<u8>,
+    pages: impl ParallelIterator<Item = u32>,
+) -> impl ParallelIterator<Item = (u32, String)> {
+    pages.map(extractor(pdf))
+}
+
+fn extractor(pdf: Vec<u8>) -> impl Fn(u32) -> (u32, String) {
+    let pdf = Pdf::new(Arc::new(pdf)).unwrap();
+    move |p| (p, extract_text_by_page(&pdf, p).unwrap())
 }

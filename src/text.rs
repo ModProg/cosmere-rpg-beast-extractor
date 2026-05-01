@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+#[cfg(test)]
+use insta::assert_debug_snapshot;
 use nom::Parser as _;
 use nom::branch::*;
 use nom::bytes::complete::{take_until, take_while};
@@ -20,13 +22,25 @@ trait Parser<'a, O>: nom::Parser<&'a str, Output = O, Error = VerboseError<&'a s
     fn context(self, c: &'static str) -> Context<Self> {
         context(c, self)
     }
+    fn trim(self) -> impl nom::Parser<&'a str, Output = &'a str, Error = VerboseError<&'a str>>
+    where
+        O: Into<&'a str>,
+    {
+        self.map(|i| i.into().trim())
+    }
+
+    fn conv<T: From<O>>(
+        self,
+    ) -> impl nom::Parser<&'a str, Output = T, Error = VerboseError<&'a str>> {
+        into(self)
+    }
 }
 impl<'a, P, O> Parser<'a, O> for P where
     P: nom::Parser<&'a str, Output = O, Error = VerboseError<&'a str>>
 {
 }
 
-pub fn parse(out: &str) -> Vec<Beast> {
+pub fn parse_page(out: &str) -> Vec<Beast> {
     many0(beast_with_pretext.context("beast"))
         .parse_complete(out)
         .map_err(|e| e.map(|e| panic!("{}", convert_error(out, e))))
@@ -61,7 +75,11 @@ fn number_in_feet(s: &str) -> IResult<u64> {
 }
 
 fn named_value<'a, O>(name: &'static str, parser: impl Parser<'a, O>) -> impl Parser<'a, O> {
-    preceded((tag(name), leading_ws(char(':'))), leading_ws(parser)).context(name)
+    preceded(
+        (tag(name), cut(leading_ws(char(':')))),
+        cut(leading_ws(parser)),
+    )
+    .context(name)
 }
 
 fn named_list<'a, O>(name: &'a str, parser: impl Parser<'a, O>) -> impl Parser<'a, Vec<O>> {
@@ -75,32 +93,40 @@ fn parenthesized<'a, T>(value: impl Parser<'a, T>) -> impl Parser<'a, T> {
     delimited(leading_ws(char('(')), value, leading_ws(char(')')))
 }
 
-fn named_value_with_paren<'a, T, P>(
+fn named_value_with_paren<'a, T, P: Into<String>>(
     name: &'static str,
     value: impl Parser<'a, T>,
     parenthesized_value: impl Parser<'a, P>,
-) -> impl Parser<'a, (T, P)> {
+) -> impl Parser<'a, DescValue<T>> {
     named_value(
         name,
         (leading_ws(value), parenthesized(parenthesized_value)),
     )
+    .map(|(value, desc)| DescValue {
+        value,
+        desc: desc.into(),
+    })
 }
 
 fn beast_with_pretext(s: &str) -> IResult<Beast> {
-    let (s, (title, tier, role, size, kind)) = find_head(s)?;
+    let (s, (name, tier, role, size, kind)) = find_head(s)?;
     let (s, (attributes, defenses)) = attributes(s)?;
     let (s, health) = leading_ws(health).parse_complete(s)?;
     // Focus: 3
     let (s, focus) = leading_ws(named_value("Focus", number)).parse_complete(s)?;
     // Investiture: 0
     let (s, investiture) = leading_ws(named_value("investiture", number)).parse_complete(s)?;
-    let (s, deflect) = leading_ws(opt(named_value_with_paren("Deflect", number, into(alpha1))))
-        .parse_complete(s)?;
+    let (s, deflect) = leading_ws(opt(named_value_with_paren(
+        "Deflect",
+        number,
+        take_until(")").trim(),
+    )))
+    .parse_complete(s)?;
     let (s, movement) = leading_ws(named_value("Movement", movement)).parse_complete(s)?;
     let (s, senses) = leading_ws(named_value_with_paren(
         "Senses",
         number_in_feet,
-        into(alpha1),
+        take_until(")").trim(),
     ))
     .parse_complete(s)?;
     let (s, immunities) = leading_ws(opt(named_value(
@@ -132,7 +158,7 @@ fn beast_with_pretext(s: &str) -> IResult<Beast> {
     let (s, features) = leading_ws(opt(preceded(
         tag("features"),
         many0(leading_ws(verify(dbg_dmp(feature, "feature"), |f| {
-            f.name.trim() != "actions"
+            f.name != "actions"
         }))),
     )))
     .parse_complete(s)?;
@@ -140,11 +166,11 @@ fn beast_with_pretext(s: &str) -> IResult<Beast> {
     let (s, actions) =
         leading_ws(opt(preceded(tag("actions"), many0(leading_ws(action))))).parse_complete(s)?;
 
-    let (s, opportunities_and_complications) =
-        opt(leading_ws(opportunities_and_complications)).parse_complete(s)?;
+    let (s, (opportunity, complication)) =
+        leading_ws(cut(opportunities_and_complications)).parse_complete(s)?;
 
     Ok((s, Beast {
-        title,
+        name,
         tier,
         role,
         size,
@@ -165,10 +191,8 @@ fn beast_with_pretext(s: &str) -> IResult<Beast> {
         languages,
         features: features.unwrap_or_default(),
         actions: actions.unwrap_or_default(),
-        opportunities_and_complications,
-        image: None,
-        description: None,
-        tactics: None,
+        opportunity,
+        complication,
     }))
 }
 
@@ -204,15 +228,12 @@ fn movement(s: &str) -> IResult<Movement> {
         leading_ws(number_in_feet),
         many0(preceded(
             leading_ws(char(',')),
-            (leading_ws(into(alpha1)), leading_ws(number_in_feet)).map(|(a, b)| (b, a)),
+            (leading_ws(into(alpha1)), leading_ws(number_in_feet))
+                .map(|(desc, value)| DescValue { value, desc }),
         )),
-        opt(parenthesized(into(take_until(")")))),
+        opt(parenthesized(into(take_until(")").trim()))),
     )
-        .map(|(value, extra, comment)| Movement {
-            value,
-            extra,
-            comment,
-        })
+        .map(|(value, extra, desc)| Movement { value, extra, desc })
         .parse_complete(s)
 }
 
@@ -241,15 +262,15 @@ fn attributes(s: &str) -> IResult<(Attributes, Defenses)> {
     ) = many_till(
         anychar.map(|_| ()),
         (
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
-            leading_ws(number),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
+            leading_ws(recognize((digit1, opt(char('*')))).conv()),
         ),
     )
     .context("attributes")
@@ -266,9 +287,9 @@ fn attributes(s: &str) -> IResult<(Attributes, Defenses)> {
                 presence,
             },
             Defenses {
-                physical_defense,
-                cognitive_defense,
-                spiritual_defense,
+                physical: physical_defense,
+                cognitive: cognitive_defense,
+                spiritual: spiritual_defense,
             },
         ),
     ))
@@ -279,24 +300,27 @@ fn attributes(s: &str) -> IResult<(Attributes, Defenses)> {
 /// Swordmaster Ardent
 /// Tier 1 Rival – Medium Humanoid
 /// ```
-fn find_head(s: &str) -> IResult<(String, u64, Role, Size, BeastKind)> {
+fn find_head(s: &str) -> IResult<(String, u64, Role, Option<Size>, String)> {
     let (s, (_ignored_pretext, (title, _newline, tier, _space, role))) = many_till(
         anychar.map(|_| ()),
-        (into(title), multispace1, tier, space1, role),
+        (into(title.trim()), multispace1, tier, space1, role),
     )
     .context("find beast")
     .parse_complete(s)?;
     let (s, _dash) = (multispace0, one_of("–-"), multispace0)
         .context("dash before size")
         .parse_complete(s)?;
-    let (s, size) = alpha1
-        .map_res(Size::from_str)
-        .context("size")
-        .parse_complete(s)?;
-    let (s, kind) = leading_ws(alpha1.map_res(BeastKind::from_str))
-        .context("kind")
-        .parse_complete(s)?;
-    Ok((s, (title, tier, role, size, kind)))
+    let (s, size_kind) = opt((
+        alpha1.map_res(Size::from_str).context("size"),
+        leading_ws(alpha1.conv()).context("kind"),
+    ))
+    .parse_complete(s)?;
+    if let Some((size, kind)) = size_kind {
+        Ok((s, (title, tier, role, Some(size), kind)))
+    } else {
+        let (s, kind) = into(take_until("\n").trim()).parse_complete(s)?;
+        Ok((s, (title, tier, role, None, kind)))
+    }
 }
 
 fn title(i: &str) -> IResult<&str> {
@@ -316,12 +340,12 @@ fn role(i: &str) -> IResult<Role> {
 fn skill(s: &str) -> IResult<Skill> {
     (
         many(1.., recognize(leading_ws(alpha1))),
-        leading_ws(preceded(tag("+"), leading_ws(number))),
-        opt(parenthesized(terminated(number, leading_ws(tag("ranks"))))),
+        leading_ws(recognize((tag("+"), leading_ws(digit1), opt(char('*')))).conv()),
+        opt(parenthesized(take_until(")")).conv()),
     )
-        .map(|(mut name, value, ranks): (String, _, _)| {
+        .map(|(mut name, value, desc): (String, _, _)| {
             name.truncate(name.trim_end().len());
-            Skill { name, value, ranks }
+            Skill { name, value, desc }
         })
         .parse_complete(s)
 }
@@ -334,13 +358,10 @@ fn feature(s: &str) -> IResult<Feature> {
         .unwrap_or(usize::MAX)
         .min(s.find("\n\n").unwrap_or(usize::MAX))
         .min(s.len());
-    let (s, name) = into(take(end_of_name)).parse_complete(s)?;
-    let (s, description) = into(preceded(
-        many0(tag(".").or(space1)),
-        take_until("\n\n").or(rest),
-    ))
-    .parse_complete(s)?;
-    Ok((s, dbg!(Feature { name, description })))
+    let (s, name) = into(take(end_of_name).trim()).parse_complete(s)?;
+    let (s, desc) = into(preceded(many0(tag(".").or(space1)), take_until("\n\n").or(rest)).trim())
+        .parse_complete(s)?;
+    Ok((s, Feature { name, desc }))
 }
 
 #[test]
@@ -349,7 +370,7 @@ fn test_feature() {
     assert_eq!(rest, "\n\n");
     assert_eq!(feature, Feature {
         name: "Hello".to_string(),
-        description: "Test.".to_string()
+        desc: "Test.".to_string()
     });
 }
 
@@ -370,7 +391,7 @@ fn action(s: &str) -> IResult<Action> {
         .unwrap_or(usize::MAX)
         .min(s.find("\n\n").unwrap_or(usize::MAX))
         .min(s.len());
-    let (s, name) = into(take(end_of_name)).parse_complete(s)?;
+    let (s, name) = into(take(end_of_name).trim()).parse_complete(s)?;
     let (mut s, mut description): (_, String) = into(preceded(
         many0(tag(".").or(space1)),
         take_until("\n\n").or(rest),
@@ -394,28 +415,28 @@ fn action(s: &str) -> IResult<Action> {
     Ok((s, Action {
         kind,
         name,
-        description,
+        desc: description.trim().into(),
     }))
 }
 
-fn opportunities_and_complications(s: &str) -> IResult<OpportunityAndComplication> {
-    let (s, _) = tag("opportunities and complications").parse_complete(s)?;
+fn opportunities_and_complications(s: &str) -> IResult<(Option<String>, Option<String>)> {
+    let (s, header) = opt(tag("opportunities and complications")).parse_complete(s)?;
+    if header.is_none() {
+        return Ok((s, (None, None)));
+    }
 
     let (s, _ignored_flavor_text) = take_until("\nOpportunity").parse_complete(s)?;
     let (s, opportunity) = leading_ws(preceded(
         (tag("Opportunity"), opt(char('.'))),
-        leading_ws(into(take_until("\nComplication"))),
+        leading_ws(into(take_until("\nComplication").trim())),
     ))
     .parse_complete(s)?;
     let (s, complication) = leading_ws(preceded(
         (tag("Complication"), opt(char('.'))),
-        leading_ws(into(take_until("\n\n"))),
+        leading_ws(into(take_until("\n\n").trim())),
     ))
     .parse_complete(s)?;
-    Ok((s, OpportunityAndComplication {
-        opportunity,
-        complication,
-    }))
+    Ok((s, (Some(opportunity), Some(complication))))
 }
 
 #[test]
@@ -424,7 +445,172 @@ fn test_action() {
     assert_eq!(rest, "\n\n");
     assert_eq!(feature, Action {
         name: "Hello".to_string(),
-        description: "Test.".to_string(),
+        desc: "Test.".to_string(),
         kind: ActionKind::Two
     });
+}
+
+#[test]
+fn test_parse() {
+    let text = r#" Random Text
+Great Fighter
+Tier 2 Rival – Medium Humanoid
+   Physical   Cognitive   Spiritual
+ str def spd int def wil awa def pre
+ 1 14* 3 0 11 1 3 16 3
+
+Health: 18 (19–36) Focus: 2 Investiture: 3
+
+Movement: 42 ft.
+Senses: 21 ft. (sight)
+Physical Skills: Walking +4, Heavy Stabbing +3, 
+Light Stabbing +4*
+Cognitive Skills: Standing +3, Remembering +2, Repairing +2
+Spiritual Skills: Seeing +5, Commanding +5, Recognizing +4
+Languages: every
+
+features
+
+Tennis player. Gains an advantage on hitting projectiles.
+
+actions
+
+▶ Strike: Racket. Attack +4, reach 5 ft., one target.
+Graze: 3 (1d6) blunt damage. Hit: 7 (1d6 + 4) blunt damage.
+
+opportunities and complications
+
+The following options are available when an enemy gains 
+an Opportunity or Complication during a scene with the 
+Great Fighter:
+
+Opportunity. An enemy can spend #OPPORTUNITY# to prevent the Great
+Fighter from being a great fighter, 
+until the end of the Great Fighter’s next turn.
+Complication. The GM can spend #COMPLICATION# from an enemy’s test to 
+have the Great Fighter use their Strike as ↩, 
+without spending Focus to do so.
+
+ASdhluadlbasd
+    "#;
+    assert_debug_snapshot!(parse_page(text), @r#"
+    [
+        Beast {
+            name: "Great Fighter",
+            tier: 2,
+            role: Rival,
+            size: Some(
+                Medium,
+            ),
+            kind: "Humanoid",
+            attributes: Attributes {
+                strength: "1",
+                speed: "3",
+                intellect: "0",
+                willpower: "1",
+                awareness: "3",
+                presence: "3",
+            },
+            defenses: Defenses {
+                physical: "14*",
+                cognitive: "11",
+                spiritual: "16",
+            },
+            health: Ranged {
+                value: 18,
+                min: 19,
+                max: 36,
+            },
+            focus: 2,
+            investiture: 3,
+            deflect: None,
+            movement: Movement {
+                value: 42,
+                extra: [],
+                desc: None,
+            },
+            senses: DescValue {
+                value: 21,
+                desc: "sight",
+            },
+            immunities: [],
+            physical_skills: [
+                Skill {
+                    name: "Walking",
+                    value: "+4",
+                    desc: None,
+                },
+                Skill {
+                    name: "Heavy Stabbing",
+                    value: "+3",
+                    desc: None,
+                },
+                Skill {
+                    name: "Light Stabbing",
+                    value: "+4*",
+                    desc: None,
+                },
+            ],
+            cognitive_skills: [
+                Skill {
+                    name: "Standing",
+                    value: "+3",
+                    desc: None,
+                },
+                Skill {
+                    name: "Remembering",
+                    value: "+2",
+                    desc: None,
+                },
+                Skill {
+                    name: "Repairing",
+                    value: "+2",
+                    desc: None,
+                },
+            ],
+            spiritual_skills: [
+                Skill {
+                    name: "Seeing",
+                    value: "+5",
+                    desc: None,
+                },
+                Skill {
+                    name: "Commanding",
+                    value: "+5",
+                    desc: None,
+                },
+                Skill {
+                    name: "Recognizing",
+                    value: "+4",
+                    desc: None,
+                },
+            ],
+            surge_skills: [],
+            languages: Some(
+                [
+                    "every",
+                ],
+            ),
+            features: [
+                Feature {
+                    name: "Tennis player",
+                    desc: "Gains an advantage on hitting projectiles.",
+                },
+            ],
+            actions: [
+                Action {
+                    kind: One,
+                    name: "Strike: Racket",
+                    desc: "Attack +4, reach 5 ft., one target.\nGraze: 3 (1d6) blunt damage. Hit: 7 (1d6 + 4) blunt damage.",
+                },
+            ],
+            opportunity: Some(
+                "An enemy can spend #OPPORTUNITY# to prevent the Great\nFighter from being a great fighter, \nuntil the end of the Great Fighter’s next turn.",
+            ),
+            complication: Some(
+                "The GM can spend #COMPLICATION# from an enemy’s test to \nhave the Great Fighter use their Strike as ↩, \nwithout spending Focus to do so.",
+            ),
+        },
+    ]
+    "#)
 }
