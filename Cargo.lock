@@ -895,6 +895,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "pdf-extract"
 version = "0.11.0"
+source = "git+https://github.com/ModProg/pdf-extract?branch=optional-extgstate#18f6dea313a53db6a6af6d1d51d331c0044c7ed6"
 dependencies = [
  "adobe-cmap-parser",
  "cff-parser",
