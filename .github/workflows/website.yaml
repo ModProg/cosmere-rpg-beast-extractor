@@ -5,7 +5,11 @@ on:
 
 jobs:
   build:
+    permissions:
+      pages: write
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
       - run: rustup update stable
@@ -15,14 +19,4 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/
-  deploy:
-    needs: build
-
-    permissions:
-      pages: write
-      id-token: write
-
-    runs-on: ubunut-latest
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v4
