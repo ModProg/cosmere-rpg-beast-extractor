@@ -6,6 +6,10 @@ Extracts beasts and adversaries from Rulebook PDFs.
 
 **Structure is very much WIP**.
 
+## Web
+
+Easiest use is to go to TODO. It works completely locally and does not upload the selected file to any server.
+
 ## CLI
 Currently there is no build that can be installed. You have to [install rust](https://rust-lang.org/tools/install/) and download the source code above. Then run this command in the repo:
 ```
