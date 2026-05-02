@@ -10,7 +10,7 @@ The structure is currently undocumented and not stable. It is mostly designed to
 
 ## Web
 
-Easiest use is to go to TODO. It works completely locally and does not upload the selected file to any server.
+Easiest use is to use the [web version](https://modprog.github.io/cosmere-rpg-beast-extractor/). It works completely locally and does not upload the selected file to any server.
 
 ## CLI
 Currently there is no build that can be installed. You have to [install rust](https://rust-lang.org/tools/install/) and download the source code above. Then run this command in the repo:
