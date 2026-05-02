@@ -4,7 +4,9 @@ Extracts beasts and adversaries from Rulebook PDFs.
 
 ## Structure
 
-**Structure is very much WIP**.
+The structure is currently undocumented and not stable. It is mostly designed to best fit with [Fantasy Statblocks for Obsidian](https://plugins.javalent.com/statblocks) using [this layout and style](./obsidian-fantasy-statblocks):
+
+![Yu-Nerig Statblock in Fantasy Statblocks for Obsidian](./docs/Yu-Nerig.png)
 
 ## Web
 

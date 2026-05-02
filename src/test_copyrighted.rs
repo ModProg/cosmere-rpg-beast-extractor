@@ -1,4 +1,5 @@
-//! To enable these tests add `--cfg=copyrighted` to `RUSTCFLAGS`.
+//! To enable these tests add `--cfg=copyrighted` to `RUSTCFLAGS`. It is also
+//! recomended to run in `--release` as this speeds up tests enormously.
 //!
 //! 1. run cargo test with `RUSTFLAGS=--cfg=copyrighted cargo insta test`
 //! 2. add to `.cargo/config`
@@ -13,9 +14,8 @@
 //! - `copyrighted/stonewalkers/stonewalkers.pdf`
 use std::collections::BTreeMap;
 
-use extract_beasts::pages;
 use insta::{assert_snapshot, assert_yaml_snapshot};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::ParallelIterator;
 
 use crate::*;
 
@@ -46,14 +46,15 @@ fn test(name: &'static str) {
 
                 assert_snapshot!(format!("text-{page}"), &content);
                 let parsed = parse_page(&content);
+                let names = parsed.iter().map(|b|b.name.clone()).collect::<Vec<_>>();
                 assert_yaml_snapshot!(format!("parsed-{page}.yaml"), parsed);
-                for beast in &parsed {
+                for beast in parsed {
                     assert_snapshot!(
                         format!("obsidian-frontmatter-{page}-{}.md", beast.name.replace(' ', "_")),
-                        format!("---\n{}\n---", yaml_serde::to_string(beast).unwrap())
+                        beast.into_obsidian_frontmatter()
                     );
                 }
-                (page, parsed.iter().map(|b|b.name.clone()).collect::<Vec<_>>())
+                (page, names)
             })
         })
         .collect();

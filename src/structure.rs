@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::mem;
+
 use derive_more::Display;
 use derive_more::with_trait::FromStr;
 use serde::Serialize;
@@ -56,10 +59,16 @@ pub struct Movement {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Serialize)]
+#[serde(into = "HashMap<String,String>")]
 pub struct Skill {
     pub name: String,
     pub value: String,
-    pub desc: Option<String>,
+}
+
+impl Into<HashMap<String, String>> for Skill {
+    fn into(self) -> HashMap<String, String> {
+        HashMap::from([(self.name, self.value)])
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Serialize)]
@@ -141,6 +150,25 @@ impl Beast {
     pub fn update_for_obsidian(mut self) -> Self {
         for action in &mut self.actions {
             action.name.insert_str(0, &format!("{} ", action.kind));
+        }
+        for text in self
+            .actions
+            .iter_mut()
+            .map(|a| &mut a.desc)
+            .chain(self.features.iter_mut().map(|f| &mut f.desc))
+            .chain(self.languages.iter_mut().flatten())
+            .chain(&mut self.opportunity)
+            .chain(&mut self.complication)
+        {
+            let lines = mem::take(text);
+            let mut lines = lines.lines();
+            *text = lines.next().unwrap_or_default().into();
+            for line in lines {
+                if line.is_empty() || line.trim_start().starts_with("◆") {
+                    text.push('\n');
+                }
+                *text += line;
+            }
         }
         self
     }

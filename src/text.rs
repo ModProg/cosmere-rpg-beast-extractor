@@ -150,13 +150,14 @@ fn beast_with_pretext(s: &str) -> IResult<Beast> {
         "Languages",
         into(recognize(many1(leading_ws(verify(
             take_while(|c: char| !c.is_whitespace()),
-            |s: &str| s != "features",
+            |s: &str| s != "features" && s != "actions" && s != "traits",
         ))))),
     )))
     .parse_complete(s)?;
 
     let (s, features) = leading_ws(opt(preceded(
-        tag("features"),
+        // Not clear if there is a difference, probably the same thing
+        tag("features").or(tag("traits")),
         many0(leading_ws(verify(dbg_dmp(feature, "feature"), |f| {
             f.name != "actions"
         }))),
@@ -340,12 +341,20 @@ fn role(i: &str) -> IResult<Role> {
 fn skill(s: &str) -> IResult<Skill> {
     (
         many(1.., recognize(leading_ws(alpha1))),
-        leading_ws(recognize((tag("+"), leading_ws(digit1), opt(char('*')))).conv()),
-        opt(parenthesized(take_until(")")).conv()),
+        leading_ws(
+            preceded(
+                tag("+"),
+                recognize((
+                    (leading_ws(digit1), opt(char('*'))),
+                    opt(parenthesized(take_until(")"))),
+                )),
+            )
+            .conv(),
+        ),
     )
-        .map(|(mut name, value, desc): (String, _, _)| {
+        .map(|(mut name, value): (String, _)| {
             name.truncate(name.trim_end().len());
-            Skill { name, value, desc }
+            Skill { name, value }
         })
         .parse_complete(s)
 }
@@ -408,7 +417,7 @@ fn action(s: &str) -> IResult<Action> {
     // ensure the next thing really is not an action
     continue_par &= action_kind(s.trim_start()).is_err();
     if continue_par {
-        let (ss, dd) = leading_ws(take_until("\n\n").or(rest)).parse_complete(s)?;
+        let (ss, dd) = recognize(leading_ws(take_until("\n\n").or(rest))).parse_complete(s)?;
         s = ss;
         description += dd;
     }
@@ -425,7 +434,7 @@ fn opportunities_and_complications(s: &str) -> IResult<(Option<String>, Option<S
         return Ok((s, (None, None)));
     }
 
-    let (s, _ignored_flavor_text) = take_until("\nOpportunity").parse_complete(s)?;
+    let (s, _ignored_flavor_text) = take_until("\nOpportunity.").or(take_until("\nOpportunity")).parse_complete(s)?;
     let (s, opportunity) = leading_ws(preceded(
         (tag("Opportunity"), opt(char('.'))),
         leading_ws(into(take_until("\nComplication").trim())),

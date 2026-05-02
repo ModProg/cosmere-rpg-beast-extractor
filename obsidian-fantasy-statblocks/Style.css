@@ -1,0 +1,9 @@
+.statblock.stormlight-archive .align-left {
+  justify-content: left;
+  gap: 0.3em;
+}
+
+.statblock.stormlight-archive .attributes {
+  width: 100%;
+  text-align: center;
+}
