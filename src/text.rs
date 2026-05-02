@@ -546,52 +546,43 @@ ASdhluadlbasd
             physical_skills: [
                 Skill {
                     name: "Walking",
-                    value: "+4",
-                    desc: None,
+                    value: "4",
                 },
                 Skill {
                     name: "Heavy Stabbing",
-                    value: "+3",
-                    desc: None,
+                    value: "3",
                 },
                 Skill {
                     name: "Light Stabbing",
-                    value: "+4*",
-                    desc: None,
+                    value: "4*",
                 },
             ],
             cognitive_skills: [
                 Skill {
                     name: "Standing",
-                    value: "+3",
-                    desc: None,
+                    value: "3",
                 },
                 Skill {
                     name: "Remembering",
-                    value: "+2",
-                    desc: None,
+                    value: "2",
                 },
                 Skill {
                     name: "Repairing",
-                    value: "+2",
-                    desc: None,
+                    value: "2",
                 },
             ],
             spiritual_skills: [
                 Skill {
                     name: "Seeing",
-                    value: "+5",
-                    desc: None,
+                    value: "5",
                 },
                 Skill {
                     name: "Commanding",
-                    value: "+5",
-                    desc: None,
+                    value: "5",
                 },
                 Skill {
                     name: "Recognizing",
-                    value: "+4",
-                    desc: None,
+                    value: "4",
                 },
             ],
             surge_skills: [],
