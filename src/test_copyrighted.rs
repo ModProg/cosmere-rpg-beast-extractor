@@ -13,6 +13,7 @@
 //! - `copyrighted/stonewalkers/stonewalkers.pdf`
 use std::collections::BTreeMap;
 
+use extract_beasts::pages;
 use insta::{assert_snapshot, assert_yaml_snapshot};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -20,22 +21,22 @@ use crate::*;
 
 #[test]
 fn stormlight_world_guide() {
-    test("stormlight-worldguide", pages::STORMLIGHT_WORLDGUIDE);
+    test("stormlight-worldguide");
 }
 
 #[test]
 fn stonewalkers() {
-    test("stonewalkers", pages::STONEWALKERS);
+    test("stonewalkers");
 }
 
-fn test(name: &'static str, pages: impl IntoParallelIterator<Item = u32>) {
+fn test(name: &'static str) {
     insta::with_settings!({
         prepend_module_to_snapshot=>false,
         snapshot_path=>format!("../copyrighted/{name}/snapshots")
     }, {
-        let index: BTreeMap<u32, Vec<String>> = pdf::extract_pages(
-            format!("copyrighted/{name}/{name}.pdf"),
-            pages.into_par_iter(),
+        let index: BTreeMap<u32, Vec<String>> = pdf::extract_pages_rayon(
+            fs::read(format!("copyrighted/{name}/{name}.pdf")).unwrap(),
+            parse_pages(name).unwrap().par_bridge(),
         )
         .map(|(page, content)| {
             insta::with_settings!({
@@ -44,7 +45,7 @@ fn test(name: &'static str, pages: impl IntoParallelIterator<Item = u32>) {
             }, {
 
                 assert_snapshot!(format!("text-{page}"), &content);
-                let parsed = text::parse(&content);
+                let parsed = parse_page(&content);
                 assert_yaml_snapshot!(format!("parsed-{page}.yaml"), parsed);
                 for beast in &parsed {
                     assert_snapshot!(

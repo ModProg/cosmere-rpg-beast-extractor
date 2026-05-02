@@ -2,8 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use clap::Parser;
-use extract_beasts::pages;
-use itertools::Either;
+use extract_beasts::{parse_page, parse_pages};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
 mod pdf;
@@ -49,29 +48,15 @@ pub fn main() -> anyhow::Result<()> {
         pages,
         format,
     } = Command::parse();
-    let pages = match pages.as_str() {
-        "stormlight-worldguide" => Either::Left(pages::STORMLIGHT_WORLDGUIDE).par_bridge(),
-        "stonewalkers" => Either::Left(pages::STONEWALKERS).par_bridge(),
-        pages => Either::Right(
-            pages
-                .split(',')
-                .map(|s| s.split_once('-').unwrap_or((s, s)))
-                .flat_map(|(f, t)| {
-                    let f: u32 = f.trim().parse().unwrap();
-                    let t: u32 = t.trim().parse().unwrap();
-                    f..=t
-                }),
-        )
-        .par_bridge(),
-    };
+    let pages = parse_pages(&pages)?.par_bridge();
 
     let pdf = std::fs::read(pdf).unwrap();
 
-    pdf::extract_pages(pdf, pages).try_for_each(|(page, out)| {
+    pdf::extract_pages_rayon(pdf, pages).try_for_each(|(page, out)| {
         if format == Format::Raw {
             fs::write(out_dir.join(format!("{page}.txt")), out)?;
         } else {
-            let beasts = text::parse(&out);
+            let beasts = parse_page(&out);
             for beast in beasts {
                 match format {
                     Format::Raw => unreachable!("handled above"),

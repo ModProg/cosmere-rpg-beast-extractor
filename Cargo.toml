@@ -58,6 +58,7 @@ zip = { version = "8.6.0", default-features = false, optional = true }
 insta = { version = "1.47.2", features = ["yaml"] }
 
 [features]
+default = ["bin-cli"]
 bin-cli = ["dep:clap", "rayon"]
 bin-web = [
   "dep:console_error_panic_hook",
