@@ -15,7 +15,7 @@ Easiest use is to use the [web version](https://modprog.github.io/cosmere-rpg-be
 ## CLI
 Currently there is no build that can be installed. You have to [install rust](https://rust-lang.org/tools/install/) and download the source code above. Then run this command in the repo:
 ```
-cargo run -- --pdf "/Path/of/the/Stormlight-Worldguide.pdf" --out-dir "output/folder" --pages 191-269 --format yaml # or obsidian-frontmatter
+cargo run --bin=extract-beasts -F bin-cli --release -- --pdf "/Path/of/the/Stormlight-Worldguide.pdf" --out-dir "output/folder" --pages stormlight-worldguide --format yaml # or obsidian-frontmatter
 ```
 
 # Development Notes
