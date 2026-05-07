@@ -31,7 +31,7 @@ impl Beast {
 
     pub fn into_obsidian_frontmatter(self) -> String {
         format!(
-            "---\nstatblock: true\n{}\n---\n",
+            "---\nstatblock: true\nlayout: Stormlight Archive\n{}\n---\n",
             self.update_for_obsidian().to_yaml()
         )
     }
