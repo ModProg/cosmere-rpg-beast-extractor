@@ -7,8 +7,10 @@ pub use pdf::extract_pages_rayon;
 
 pub mod structure;
 
-mod text;
-pub use text::parse_page;
+// mod text;
+// pub use text::parse_page;
+mod text_pest;
+pub use text_pest::parse_page;
 
 pub use crate::structure::Beast;
 

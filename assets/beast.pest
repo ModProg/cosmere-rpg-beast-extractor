@@ -1,0 +1,8 @@
+pretext = { ANY* }
+
+file = {
+    SOI ~
+    pretext ~
+    "Tier" ~
+    EOI
+}
