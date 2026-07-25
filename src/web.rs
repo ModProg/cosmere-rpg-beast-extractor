@@ -1,9 +1,11 @@
 use std::io::Write;
 use std::{io, iter};
 
-use extract_beasts::{extract_pages, pages, parse_page, parse_pages};
+use extract_beasts::{Parser, extract_page, extract_pages, pages, parse_page_old, parse_pages};
+use gloo::console::{Timer, log};
 use gloo::file::futures::read_as_bytes;
 use gloo::file::{Blob, FileList};
+use gloo::storage::{LocalStorage, Storage};
 use gloo::utils::document;
 use itertools::Either;
 use wasm_bindgen::convert::{FromWasmAbi, IntoWasmAbi};
@@ -55,6 +57,24 @@ async fn main() {
         .unwrap();
     pages_input_callback.forget();
 
+    let grammar_input = element_by_id!("parser-grammar": HtmlTextAreaElement);
+    grammar_input.set_value(
+        LocalStorage::get::<String>("grammar")
+            .as_deref()
+            .unwrap_or(""),
+    );
+    let parser_input_callback = callback(|_: Event| {
+        spawn_local(async {
+            convert_one_page().await;
+            let grammar = &element_by_id!("parser-grammar": HtmlTextAreaElement).value();
+            LocalStorage::set("grammar", grammar).unwrap();
+        })
+    });
+    grammar_input
+        .add_event_listener_with_callback("input", parser_input_callback.as_ref().unchecked_ref())
+        .unwrap();
+    parser_input_callback.forget();
+
     let parse_pdf_callback = callback(|e: Event| {
         e.prevent_default();
         spawn_local(async {
@@ -74,6 +94,45 @@ async fn main() {
     parse_pdf_callback.forget();
 }
 
+async fn convert_one_page() {
+    element_by_id!("parser-output": HtmlTextAreaElement).set_value("huh");
+    let grammar = &element_by_id!("parser-grammar": HtmlTextAreaElement).value();
+    let parser = match Parser::new(grammar) {
+        Ok(p) => p,
+        Err(e) => {
+            element_by_id!("parser-output": HtmlTextAreaElement).set_value(&format!("Error found while {e:?}"));
+            return;
+        }
+    };
+    log!("hi");
+
+    let pages = &element_by_id!("pages": HtmlInputElement).value();
+    let pages = parse_pages(pages)
+        .expect("validated on input")
+        .next()
+        .unwrap();
+    // let format = element_by_id!("format": HtmlSelectElement).value();
+    let file = element_by_id!("file": HtmlInputElement);
+    if let Some(file) = FileList::from(file.files().unwrap()).first() {
+        let data = read_as_bytes(file).await.unwrap();
+        // let from = std::time::Instant::now();
+        let timer = Timer::new("extract_pages");
+        let page = extract_page(data, pages);
+        drop(timer);
+        // log!("took", format!("{:?}", from.elapsed()));
+        element_by_id!("parser-input": HtmlTextAreaElement).set_value(&page);
+        let result = parser.parse_page(&page);
+        // let result = parse_page(&page, grammar);
+        let result = match result {
+            Ok(o) => yaml_serde::to_string(&o).unwrap(),
+            Err(e) => e.to_string(),
+        };
+        element_by_id!("parser-output": HtmlTextAreaElement).set_value(&result);
+        log!("hello");
+    } else {
+        todo!("no file found");
+    }
+}
 async fn convert_pdf() {
     let pages = &element_by_id!("pages": HtmlInputElement).value();
     let pages = parse_pages(pages).expect("validated on input");
@@ -81,23 +140,22 @@ async fn convert_pdf() {
     let file = element_by_id!("file": HtmlInputElement);
     if let Some(file) = FileList::from(file.files().unwrap()).first() {
         let data = read_as_bytes(file).await.unwrap();
-        let pages =
-            extract_pages(data, pages).flat_map(|(page, content)| {
-                if format == "raw" {
-                    Either::Left(iter::once((format!("{page}.txt"), content)))
-                } else {
-                    Either::Right(parse_page(&content).into_iter().map(
-                        |beast| match format.as_ref() {
-                            "yaml" => (format!("{}.yaml", beast.name), beast.to_yaml()),
-                            "obsidian-frontmatter" => (
-                                format!("{}.md", beast.name),
-                                beast.into_obsidian_frontmatter(),
-                            ),
-                            _ => unreachable!(),
-                        },
-                    ))
-                }
-            });
+        let pages = extract_pages(data, pages).flat_map(|(page, content)| {
+            if format == "raw" {
+                Either::Left(iter::once((format!("{page}.txt"), content)))
+            } else {
+                Either::Right(parse_page_old(&content).into_iter().map(
+                    |beast| match format.as_ref() {
+                        "yaml" => (format!("{}.yaml", beast.name), beast.to_yaml()),
+                        "obsidian-frontmatter" => (
+                            format!("{}.md", beast.name),
+                            beast.into_obsidian_frontmatter(),
+                        ),
+                        _ => unreachable!("{format}"),
+                    },
+                ))
+            }
+        });
         let mut out = io::Cursor::new(Vec::new());
         let mut zip = ZipWriter::new(&mut out);
         for (name, content) in pages {
@@ -121,6 +179,6 @@ async fn convert_pdf() {
         a.click();
         Url::revoke_object_url(&url).unwrap();
     } else {
-        todo!();
+        todo!("no file found");
     }
 }

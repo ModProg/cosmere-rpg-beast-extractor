@@ -65,9 +65,9 @@ pub struct Skill {
     pub value: String,
 }
 
-impl Into<HashMap<String, String>> for Skill {
-    fn into(self) -> HashMap<String, String> {
-        HashMap::from([(self.name, self.value)])
+impl From<Skill> for HashMap<String, String> {
+    fn from(val: Skill) -> Self {
+        HashMap::from([(val.name, val.value)])
     }
 }
 

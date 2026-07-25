@@ -17,17 +17,21 @@ required-features = ["bin-web"]
 
 [dependencies]
 anyhow = "1.0.102"
+cached = "3.0.0-rc.2"
 derive_more = { version = "2.1.1", features = ["full"] }
 euclid = "0.20.14"
 hayro-syntax = "0.5.0"
 indexmap = "2.13.0"
 itertools = "0.14.0"
 lazy_static = "1.5.0"
-nom = "8"
-nom-language = "0.1.0"
+# nom = "8"
+# nom-language = "0.1.0"
 # pdf-extract.path = "../../../../Rust/pdf-extract"
 # pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract", branch = "hayro" }
-pdf-extract = { git = "https://github.com/ModProg/pdf-extract", branch = "optional-extgstate" }
+pdf-extract = {
+  git = "https://github.com/ModProg/pdf-extract",
+  branch = "optional-extgstate"
+}
 # pest = "2.8.6"
 pest_meta = { version = "2.8.2", features = ["grammar-extras"] }
 pest_vm = { version = "2.8.2", features = ["grammar-extras"] }
@@ -37,33 +41,47 @@ serde = { version = "1.0.228", features = ["derive"] }
 yaml_serde = "0.10.4"
 
 # cli
-clap = { version = "4.6.0", features = ["derive", "unstable-markdown"], optional = true }
+clap = {
+  version = "4.6.0",
+  features = ["derive", "unstable-markdown"],
+  optional = true
+}
 
 # web
 console_error_panic_hook = { version = "0.1.7", optional = true }
-gloo = { version = "0.11.0", features = ["futures"], optional = true }
+gloo = {
+  version = "0.12.0",
+  # default-features = false,
+  features = ["console", "futures"],
+  optional = true
+}
+serde_json = { version = "1.0.149", features = ["preserve_order"] }
 wasm-bindgen = { version = "0.2.118", optional = true }
 wasm-bindgen-futures = { version = "0.4.70", optional = true }
-web-sys = { version = "0.3.95", features = [
-  "Document",
-  "Event",
-  "FileReaderSync",
-  "HtmlButtonElement",
-  "HtmlElement",
-  "HtmlInputElement",
-  "HtmlSelectElement",
-  "Text",
-  "Window",
-  "console"
-], optional = true }
+web-sys = {
+  version = "0.3.95",
+  features = [
+    "Document",
+    "Event",
+    "FileReaderSync",
+    "HtmlButtonElement",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlSelectElement",
+    "HtmlTextAreaElement",
+    "Text",
+    "Window",
+    "console"
+  ],
+  optional = true
+}
 zip = { version = "8.6.0", default-features = false, optional = true }
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["yaml"] }
 
 [features]
-default = ["bin-cli"]
+default = ["bin-web"]
 bin-cli = ["dep:clap", "rayon"]
 bin-web = [
   "dep:console_error_panic_hook",

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use clap::Parser;
-use extract_beasts::{parse_page, parse_pages};
+use extract_beasts::{parse_page_old, parse_pages};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
 mod pdf;
@@ -56,7 +56,7 @@ pub fn main() -> anyhow::Result<()> {
         if format == Format::Raw {
             fs::write(out_dir.join(format!("{page}.txt")), out)?;
         } else {
-            let beasts = parse_page(&out);
+            let beasts = parse_page_old(&out);
             for beast in beasts {
                 match format {
                     Format::Raw => unreachable!("handled above"),

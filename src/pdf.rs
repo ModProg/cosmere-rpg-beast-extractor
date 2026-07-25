@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
 
+use cached::cached;
 use euclid::{Transform2D, vec2};
 use hayro_syntax::Pdf;
 use lazy_static::lazy_static;
@@ -157,6 +159,19 @@ fn extract_text_by_page(pdf: &Pdf, page_num: u32) -> Result<String, OutputError>
         pdf_extract::output_doc_page(pdf, &mut output, page_num)?;
     }
     Ok(s)
+}
+
+fn cache_key(pdf: &[u8], page: u32) -> (u64, u32) {
+    let mut hasher = DefaultHasher::new();
+    // TODO think about a better sampling :)
+    pdf[0..pdf.len().min(1000)].hash(&mut hasher);
+    pdf[pdf.len().max(1000) - 1000..pdf.len()].hash(&mut hasher);
+    (hasher.finish(), page)
+}
+
+#[cached(convert = {cache_key(&pdf, page)}, key="(u64, u32)")]
+pub fn extract_page(pdf: Vec<u8>, page: u32) -> String {
+    extractor(pdf)(page).1
 }
 
 pub fn extract_pages(

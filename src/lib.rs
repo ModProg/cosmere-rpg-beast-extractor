@@ -1,7 +1,7 @@
 mod pdf;
 
 use derive_more::{Display, Error};
-pub use pdf::extract_pages;
+pub use pdf::{extract_pages, extract_page};
 #[cfg(feature = "rayon")]
 pub use pdf::extract_pages_rayon;
 
@@ -10,7 +10,7 @@ pub mod structure;
 // mod text;
 // pub use text::parse_page;
 mod text_pest;
-pub use text_pest::parse_page;
+pub use text_pest::{Parser, parse_page, parse_page_old};
 
 pub use crate::structure::Beast;
 

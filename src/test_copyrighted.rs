@@ -45,7 +45,7 @@ fn test(name: &'static str) {
             }, {
 
                 assert_snapshot!(format!("text-{page}"), &content);
-                let parsed = parse_page(&content);
+                let parsed = parse_page_old(&content);
                 let names = parsed.iter().map(|b|b.name.clone()).collect::<Vec<_>>();
                 assert_yaml_snapshot!(format!("parsed-{page}.yaml"), parsed);
                 for beast in parsed {
