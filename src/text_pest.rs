@@ -22,11 +22,9 @@ impl Parser {
     }
 
     pub fn parse_page(&self, s: &str) -> anyhow::Result<Vec<Value>> {
-        log!("hello 1");
         let mut result = vec![];
         let mut token_stack = vec![];
         let parse = self.0.parse("main", s);
-        log!("hello 2");
         for token in parse.map_err(|e| anyhow!("{e}"))?.flatten().tokens() {
             match token {
                 Token::Start { rule, pos } => {
