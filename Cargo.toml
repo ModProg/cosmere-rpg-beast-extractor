@@ -76,6 +76,7 @@ web-sys = {
   optional = true
 }
 zip = { version = "8.6.0", default-features = false, optional = true }
+# TODO https://github.com/txjmb/jsonata-core
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["yaml"] }
