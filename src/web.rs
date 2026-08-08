@@ -95,12 +95,13 @@ async fn main() {
 }
 
 async fn convert_one_page() {
-    element_by_id!("parser-output": HtmlTextAreaElement).set_value("huh");
+    element_by_id!("parser-output": HtmlElement).set_inner_text("huh");
     let grammar = &element_by_id!("parser-grammar": HtmlTextAreaElement).value();
     let parser = match Parser::new(grammar) {
         Ok(p) => p,
         Err(e) => {
-            element_by_id!("parser-output": HtmlTextAreaElement).set_value(&format!("Error found while {e:?}"));
+            element_by_id!("parser-output": HtmlElement)
+                .set_inner_text(&format!("Error found while {e:?}"));
             return;
         }
     };
@@ -127,10 +128,9 @@ async fn convert_one_page() {
             Ok(o) => yaml_serde::to_string(&o).unwrap(),
             Err(e) => e.to_string(),
         };
-        element_by_id!("parser-output": HtmlTextAreaElement).set_value(&result);
-        log!("hello");
+        element_by_id!("parser-output": HtmlElement).set_inner_text(&result);
     } else {
-        todo!("no file found");
+        element_by_id!("parser-output": HtmlElement).set_inner_text("No File selected.");
     }
 }
 async fn convert_pdf() {

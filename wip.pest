@@ -1,0 +1,119 @@
+~ = _ (" " | "\t" | "\u{A0}" | '\u{2000}'..'\u{200A}' | "\u{202F}" | "\u{205F}" | "\u{3000}")*
+^ = _ (" " | "\t" | "\u{A0}" | '\u{2000}'..'\u{200A}' | "\u{202F}" | "\u{205F}" | "\u{3000}" | "\n" | "\r\n")*
+nl = _ {"\n" | "\r\n"}
+nls = _ {nl*} 
+line = _ {(!nl - ANY)*}
+word = _ ASCII_ALPHA+
+
+number = _ {ASCII_ALPHANUMERIC+}
+dash = _ { "-" | "–" }
+
+list(parser) = _ (parser ~ ",")^* ^ (parser)?
+
+
+head = _ name ~ nl ~ line2
+name = line
+role = (i"Minion" | i"Rival" | i"Boss")
+tier = number
+size = line
+line2 = _ i"Tier" ~ tier ~ role ~ dash ~ size
+
+attributes = attribute_headers ~ strength ~ physical_defense ~ speed ~ intellect ~ cognitive_defense ~ willpower ~ awareness ~ spiritual_defense ~ presence
+attribute_headers = _ i"Physical" ~ line ~ nl ~ i"str" ~ line ~ nl
+attribute = _ number - ("" ~ "*")?
+strength = attribute
+physical_defense = attribute
+speed = attribute
+intellect = attribute
+cognitive_defense = attribute
+willpower = attribute
+awareness = attribute
+spiritual_defense = attribute
+presence = attribute
+
+line3 = _ i"Health:" ~ health ~ i"Focus:" ~ focus ~ i"Investiture:" ~ investiture
+health = (!("" ~ i"Focus") - ANY)*
+focus = number
+investiture = number
+
+properties = _ (i"Deflect:" ~ deflect)? ~ (nl ~ i"Movement:" ~ movement)? ~ (nl ~ i"Senses:" ~ senses)?
+deflect = line
+movement = line
+senses = line 
+
+skills = _ (i"Physical Skills:" ~ list(physical_skills))? ^ (i"Cognitive Skills:" ~ list(cognitive_skills))? ^ (i"Spiritual Skills:" ~ list(spiritual_skills))?
+physical_skills = skill
+cognitive_skills = skill
+spiritual_skills = skill
+skill = _ skill_name ~ skill_value
+skill_name = word^+
+skill_value = "+" ~ number
+ 
+beast = head ~ nls ~ attributes ~ nls ~ line3 ~ nls ~ properties ~ nls ~ skills
+
+main = _{ ((!head ~ ANY)* - beast)* }
+`~ = _ (" " | "\\t" | "\\u{A0}" | '\\u{2000}'..'\\u{200A}' | "\\u{202F}" | "\\u{205F}" | "\\u{3000}")*
+^ = _ (" " | "\\t" | "\\u{A0}" | '\\u{2000}'..'\\u{200A}' | "\\u{202F}" | "\\u{205F}" | "\\u{3000}" | "\\n" | "\\r\\n")*
+nl = _ {"\\n" | "\\r\\n"}
+nls = _ {nl*} 
+line = _ {(!nl - ANY)*}
+word = _ ASCII_ALPHA+
+
+number = _ {ASCII_ALPHANUMERIC+}
+dash = _ { "-" | "–" }
+
+list(parser) = _ (parser ~ ",")^* ^ (parser)?
+
+
+head = _ name ~ nl ~ line2
+name = line
+role = (i"Minion" | i"Rival" | i"Boss")
+tier = number
+size = line
+line2 = _ i"Tier" ~ tier ~ role ~ dash ~ size
+
+attributes = attribute_headers ~ strength ~ physical_defense ~ speed ~ intellect ~ cognitive_defense ~ willpower ~ awareness ~ spiritual_defense ~ presence
+attribute_headers = _ i"Physical" ~ line ~ nl ~ i"str" ~ line ~ nl
+attribute = _ number - ("" ~ "*")?
+strength = attribute
+physical_defense = attribute
+speed = attribute
+intellect = attribute
+cognitive_defense = attribute
+willpower = attribute
+awareness = attribute
+spiritual_defense = attribute
+presence = attribute
+
+line3 = _ i"Health:" ~ health ~ i"Focus:" ~ focus ~ i"Investiture:" ~ investiture
+health = (!("" ~ i"Focus") - ANY)*
+focus = number
+investiture = number
+
+properties = _ (i"Deflect:" ~ deflect)? ^ (i"Movement:" ~ movement)? ^ (i"Senses:" ~ senses)?
+deflect = line
+movement = line
+senses = line 
+
+skills = _ (i"Physical Skills:" ~ list(physical_skills))? ^ (i"Cognitive Skills:" ~ list(cognitive_skills))? ^ (i"Spiritual Skills:" ~ list(spiritual_skills))?
+physical_skills = skill
+cognitive_skills = skill
+spiritual_skills = skill
+skill = _ skill_name ~ skill_value
+skill_name = word^+
+skill_value = "+" ~ number
+
+languages = (!i"features" - !i"actions"  - !i"traits" - ANY)+
+
+features = !"actions" - (feature_name ~ "." ~ feature_desc | feature_name)
+feature_name = (!"." - !"\\n\\n" - ANY)*
+feature_desc = (!"\\n\\n" - ANY)*
+
+actions = action_name ~ "." ~ action_desc | action_name
+action_name = ("▷" | "▶" | "↩") - (!"." - !"\\n\\n" - ANY)*
+action_desc =  (!"\\n\\n" - !"◆" - ANY)* - ("◆" - (!("\\n\\n" - ("▷" | "▶" | "↩")) - ANY)*)?
+action_start = "▷" | "▶" | "↩"
+ 
+beast = head ~ nls ~ attributes ~ nls ~ line3 ~ nls ~ properties ~ nls ~ skills ^ (i"Languages:" ~ languages)? ^ ((i"features" | i"traits") ^ (features ~ "\\n\\n")~*)? ^ (i"actions" ^ (actions ~ "\\n\\n")~*)?
+
+main = _{ ((!head ~ ANY)* - beast)* }`

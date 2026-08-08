@@ -6,73 +6,8 @@
 		<title>Beast Extractor</title>
 		<link data-trunk rel="rust" data-bin="web" data-cargo-features="bin-web">
 		<link data-trunk rel="copy-dir" href="./obsidian-fantasy-statblocks">
-		<style>
-			#form {
-				display: flex;
-				flex-direction: column;
-				gap: 1em;
-				max-width: 700px;
-			}
-			p {
-				margin: 0px;
-			}
-			form[data-disabled] {
-				opacity: 30%;
-			}
-			body {
-				padding: 2em;
-				display: flex;
-				justify-content: center;
-				font-family: sans;
-				font-size: 1.5em;
-			}
-			
-			#loading[data-disabled]{
-				display: none
-			}
-			
-			#loading{
-				position: absolute;
-				background: transparent;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-			}
-			.loader {
-				width: 48px;
-				height: 48px;
-				border: 5px solid #152849;
-				border-bottom-color: #bd9853;
-				border-radius: 50%;
-				display: block;
-				box-sizing: border-box;
-				animation: rotation 1s linear infinite;
-			}
-			
-			@keyframes rotation {
-				0% {
-					transform: rotate(0deg);
-				}
-				100% {
-					transform: rotate(360deg);
-				}
-			}
-			
-			@media (prefers-color-scheme: dark) {
-				body {
-					background: #06070a;
-					color: white;
-				}
-				.loader {
-					border: 5px solid #1e3c60;
-					border-bottom-color: #bd9853;
-				}
-			}
-		</style>
+		<link data-trunk rel="css" href="./assets/simple.css">
+		<link data-trunk rel="css" href="./assets/custom.css">
 	</head>
 	<body>
 		<form id="form">
@@ -96,16 +31,25 @@
 				</select>
 				<input name="pages" id="pages" required>
 			</label>
-			<label>
-				Parser<br>
-				<select id="parser" required>
-					<option value="manual">Manual</option>
-				</select>
-				<br>
-			</label>
-			<textarea id="parser-input" rows="20" readonly></textarea>
-			<textarea id="parser-grammar" rows="20"></textarea>
-			<textarea id="parser-output" rows="20" readonly></textarea>
+			<div style="display: flex; flex-direction: row; gap: 1em;">
+				<label>
+					Parser<br>
+					<select id="parser" required>
+						<option value="manual">Manual</option>
+					</select>
+					<br>
+				</label>
+				<label>
+					Preview Page<br>
+					<select id="preview-page"></select>
+				</label>
+			</div>
+			<div id="editor" data-wide>
+				<textarea id="parser-input" rows="20" readonly></textarea>
+				<textarea id="parser-grammar" rows="20"></textarea>
+				<div id="parser-output">
+				</div>
+			</div>
 			<label>
 				Format<br>
 				<select id="format" required>

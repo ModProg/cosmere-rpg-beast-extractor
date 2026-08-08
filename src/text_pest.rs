@@ -35,7 +35,7 @@ impl Parser {
                         .pop()
                         .expect("there should always be a `Start` for an `End`");
                     assert!(rule == srule);
-                    let mut value = json!(&s[start_pos..pos.pos()]);
+                    let mut value = json!(&s[start_pos..pos.pos()].trim());
                     if !values.is_empty() {
                         values.insert("_".to_owned(), value);
                         value = values.into();
