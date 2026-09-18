@@ -1,0 +1,13 @@
+[package]
+name = "website"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2.95"
+extract-beasts.git = "https://github.com/ModProg/cosmere-rpg-beast-extractor"
+extract-beasts.branch = "pest"
+extract-beasts.default-features = false

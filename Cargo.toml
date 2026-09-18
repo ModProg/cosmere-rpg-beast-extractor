@@ -42,28 +42,28 @@ yaml_serde = "0.10.4"
 clap = { version = "4.6.0", features = ["derive", "unstable-markdown"], optional = true }
 
 # web
-console_error_panic_hook = { version = "0.1.7", optional = true }
-getrandom = { version = "0.4.2", features = ["wasm_js"] }
-gloo = {
-  version = "0.12.0",
-  # default-features = false,
-  features = ["console", "futures"],
-  optional = true
-}
-jsonata-core = "2.2.9"
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
-serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = { version = "0.2.118", optional = true }
-wasm-bindgen-futures = { version = "0.4.70", optional = true }
-web-sys = { version = "0.3.95", features = ["CssStyleDeclaration", "Document", "DomTokenList", "Event", "FileReaderSync", "HtmlButtonElement", "HtmlElement", "HtmlInputElement", "HtmlOptionElement", "HtmlSelectElement", "HtmlTextAreaElement", "NodeList", "Text", "Window", "console"], optional = true }
-zip = { version = "8.6.0", default-features = false, optional = true }
+# console_error_panic_hook = { version = "0.1.7", optional = true }
+# getrandom = { version = "0.4.2", features = ["wasm_js"] }
+# gloo = {
+#   version = "0.12.0",
+#   # default-features = false,
+#   features = ["console", "futures"],
+#   optional = true
+# }
+# jsonata-core = "2.2.9"
+# serde_json = { version = "1.0.149", features = ["preserve_order"] }
+# serde-wasm-bindgen = "0.6.5"
+# wasm-bindgen = { version = "0.2.118", optional = true }
+# wasm-bindgen-futures = { version = "0.4.70", optional = true }
+# web-sys = { version = "0.3.95", features = ["CssStyleDeclaration", "Document", "DomTokenList", "Event", "FileReaderSync", "HtmlButtonElement", "HtmlElement", "HtmlInputElement", "HtmlOptionElement", "HtmlSelectElement", "HtmlTextAreaElement", "NodeList", "Text", "Window", "console"], optional = true }
+# zip = { version = "8.6.0", default-features = false, optional = true }
 # TODO https://github.com/txjmb/jsonata-core
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["yaml"] }
 
 [features]
-default = ["bin-web"]
+# default = ["bin-web"]
 bin-cli = ["dep:clap", "rayon"]
 bin-web = ["dep:console_error_panic_hook", "dep:gloo", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:web-sys", "dep:zip"]
 
