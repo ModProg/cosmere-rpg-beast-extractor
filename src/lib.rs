@@ -1,16 +1,16 @@
 mod pdf;
 
 use derive_more::{Display, Error};
-pub use pdf::{extract_pages, extract_page};
 #[cfg(feature = "rayon")]
 pub use pdf::extract_pages_rayon;
+pub use pdf::{extract_page, extract_pages};
 
 pub mod structure;
 
 // mod text;
 // pub use text::parse_page;
 mod text_pest;
-pub use text_pest::{Parser, parse_page, parse_page_old};
+pub use text_pest::{Parser, parse_page};
 
 pub use crate::structure::Beast;
 
@@ -44,7 +44,7 @@ impl Beast {
 #[display("Expected unsigned integer, found: {_0}")]
 #[error(ignore)]
 pub struct ParsePageError(pub String);
-pub fn parse_pages(s: &str) -> Result<impl Iterator<Item = u32>, ParsePageError> {
+pub fn parse_pages(s: &str) -> Result<impl Iterator<Item = u32> + use<>, ParsePageError> {
     Ok(pages::resolve(s)
         .split(',')
         .map(|s| s.split_once('-').unwrap_or((s, s)))

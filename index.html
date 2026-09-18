@@ -7,10 +7,13 @@
 		<link data-trunk rel="rust" data-bin="web" data-cargo-features="bin-web">
 		<link data-trunk rel="copy-dir" href="./obsidian-fantasy-statblocks">
 		<link data-trunk rel="css" href="./assets/simple.css">
-		<link data-trunk rel="css" href="./assets/custom.css">
+		<link data-trunk rel="scss" href="./assets/custom.scss">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js" integrity="sha512-8RnEqURPUc5aqFEN04aQEiPlSAdE0jlFS/9iGgUyNtwFnSKCXhmB6ZTNl7LnDtDWKabJIASzXrzD0K+LYexU9g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/xq-dark.css" integrity="sha512-HdUWQJp/VCAWq+cTKx3mx+5ACRKWLYkuopXHOwWLSJB6KTMCc7jAyERpUakkWNNtMyKhrB3SLzHlkomkjvEUVw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 	</head>
 	<body>
-		<form id="form">
+		<form id="form" style="display: none">
 			<p>See <a href="https://github.com/ModProg/cosmere-rpg-beast-extractor">the GitHub repo</a>
 				for documentation. This works completely locally and does not upload anything to a server.</p>
 			<p>The <em>Obsidian Frontmatter</em>
@@ -34,20 +37,40 @@
 			<div style="display: flex; flex-direction: row; gap: 1em;">
 				<label>
 					Parser<br>
-					<select id="parser" required>
+					<select id="parser" required autocomplete="on">
 						<option value="manual">Manual</option>
+						<option value="beast">Beast / Adversary</option>
 					</select>
 					<br>
 				</label>
-				<label>
+				<label class="editor-options">
 					Preview Page<br>
 					<select id="preview-page"></select>
 				</label>
+				<label class="editor-options">
+					Editor Style<br>
+					<select id="editor-style">
+						<option value="vertical">Vertical</option>
+						<option value="side-by-side">Side by Side</option>
+					</select>
+				</label>
+				<label class="editor-options">
+					Data Mapping<br>
+					<select id="data-mapping">
+						<option value="none">None</option>
+						<option value="jsonata">JSONata</option>
+					</select>
+				</label>
 			</div>
-			<div id="editor" data-wide>
-				<textarea id="parser-input" rows="20" readonly></textarea>
-				<textarea id="parser-grammar" rows="20"></textarea>
-				<div id="parser-output">
+			<div id="editor" class="wide" style="display: none">
+				<div class="row">
+					<textarea id="parser-input" rows="20" readonly></textarea>
+					<textarea id="parser-grammar" rows="20"></textarea>
+					<div id="parser-output" class="output"></div>
+				</div>
+				<div id="editor-mapping" class="row">
+					<textarea id="mapping-code" rows="20" readonly>$</textarea>
+					<div id="mapping-output" class="output"></div>
 				</div>
 			</div>
 			<label>

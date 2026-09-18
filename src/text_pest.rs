@@ -1,8 +1,8 @@
 use std::mem;
 
 use anyhow::{Context, anyhow};
-#[cfg(feature = "bin-web")]
-use gloo::console::log;
+// #[cfg(feature = "bin-web")]
+// use gloo::console::log;
 use itertools::Itertools;
 use pest3_vm::Vm;
 use pest3_vm::pest2::Token;
@@ -71,16 +71,16 @@ impl Parser {
     }
 }
 
-pub fn parse_page_old(s: &str) -> Vec<Beast> {
-    let vm = Vm::from_src(
-        r#"
-        ~ = _{ " " | "\t" | "\xA0" | '\u{2000}'..'\u{200A}' | "\u{202F}" | "\u{205F}" | "\u{3000}" }
-        "#,
-        "",
-    );
+// pub fn parse_page_old(s: &str) -> Vec<Beast> {
+//     let vm = Vm::from_src(
+//         r#"
+//         ~ = _{ " " | "\t" | "\xA0" | '\u{2000}'..'\u{200A}' | "\u{202F}" | "\u{205F}" | "\u{3000}" }
+//         "#,
+//         "",
+//     );
 
-    todo!("no");
-}
+//     todo!("no");
+// }
 
 pub fn parse_page(s: &str, grammar: &str) -> Vec<Beast> {
     let vm = Parser::new(grammar).unwrap();
