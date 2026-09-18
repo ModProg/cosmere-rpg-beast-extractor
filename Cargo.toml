@@ -51,7 +51,7 @@ clap = { version = "4.6.0", features = ["derive", "unstable-markdown"], optional
 #   optional = true
 # }
 # jsonata-core = "2.2.9"
-# serde_json = { version = "1.0.149", features = ["preserve_order"] }
+serde_json = { version = "1.0.149", features = ["preserve_order"] }
 # serde-wasm-bindgen = "0.6.5"
 # wasm-bindgen = { version = "0.2.118", optional = true }
 # wasm-bindgen-futures = { version = "0.4.70", optional = true }
@@ -65,7 +65,7 @@ insta = { version = "1.47.2", features = ["yaml"] }
 [features]
 # default = ["bin-web"]
 bin-cli = ["dep:clap", "rayon"]
-bin-web = ["dep:console_error_panic_hook", "dep:gloo", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:web-sys", "dep:zip"]
+# bin-web = ["dep:console_error_panic_hook", "dep:gloo", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:web-sys", "dep:zip"]
 
 [lints.rust]
 mismatched_lifetime_syntaxes = "allow"

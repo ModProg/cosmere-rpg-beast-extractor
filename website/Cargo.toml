@@ -9,5 +9,5 @@ crate-type = ["cdylib"]
 [dependencies]
 wasm-bindgen = "0.2.95"
 extract-beasts.git = "https://github.com/ModProg/cosmere-rpg-beast-extractor"
-extract-beasts.branch = "pest"
+extract-beasts.branch = "pest-ts"
 extract-beasts.default-features = false
